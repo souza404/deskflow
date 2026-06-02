@@ -47,34 +47,29 @@ export function Portal() {
   }
 
   return (
-    <div className="min-h-screen w-full bg-black text-white selection:bg-emerald-500/30 overflow-x-hidden font-sans relative flex flex-col items-center justify-center">
-      <div className="fixed inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-emerald-500/10 rounded-full blur-[120px] animate-pulse" />
-        <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-teal-500/10 rounded-full blur-[120px] animate-pulse delay-1000" />
-      </div>
+    <div className="min-h-screen w-full bg-[#09090b] text-white font-sans relative flex flex-col items-center justify-center">
+      <div className="fixed inset-0 pointer-events-none bg-[radial-gradient(ellipse_70%_50%_at_50%_-10%,rgba(16,185,129,0.07),transparent)]" />
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
+        transition={{ duration: 0.3 }}
         className="w-full max-w-2xl relative z-10 px-4 py-12"
       >
         <div className="mb-8 text-center">
-          <div className="flex items-center justify-center gap-2 mb-4">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-emerald-400 to-teal-600 flex items-center justify-center shadow-[0_0_15px_rgba(16,185,129,0.4)]">
-              <span className="font-bold text-black text-lg">D</span>
+          <div className="flex items-center justify-center gap-2 mb-5">
+            <div className="w-7 h-7 rounded-lg bg-emerald-500 flex items-center justify-center">
+              <span className="font-bold text-black text-sm">D</span>
             </div>
-            <span className="font-bold text-xl tracking-tight text-white">
+            <span className="font-semibold text-[15px] tracking-tight text-white">
               Desk<span className="text-emerald-400">Flow</span>
             </span>
           </div>
-          <h1 className="text-4xl font-bold tracking-tight text-white mb-2">
-            Abrir um <span className="text-emerald-400">Chamado</span>
-          </h1>
-          <p className="text-zinc-400">Descreva seu problema e nós cuidaremos disso.</p>
+          <h1 className="text-2xl font-bold text-white mb-1.5">Abrir um Chamado</h1>
+          <p className="text-zinc-500 text-sm">Descreva seu problema e nós cuidaremos disso.</p>
         </div>
 
-        <GlassCard className="p-8 border-emerald-500/10 shadow-[0_0_50px_rgba(16,185,129,0.05)]">
+        <GlassCard className="p-6">
           {isSubmitted ? (
             <div className="flex flex-col items-center justify-center py-12 text-center space-y-4">
               <div className="w-16 h-16 rounded-full bg-emerald-500/20 flex items-center justify-center text-emerald-400 mb-4">
@@ -156,7 +151,7 @@ export function Portal() {
           )}
         </GlassCard>
 
-        <p className="text-center text-zinc-500 text-sm mt-6">
+        <p className="text-center text-zinc-600 text-sm mt-5">
           Você é agente?{' '}
           <a href="/login" className="text-emerald-400 hover:text-emerald-300 transition-colors">
             Acesse o painel

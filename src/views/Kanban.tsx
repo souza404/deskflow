@@ -8,11 +8,11 @@ import { Ticket, Status } from '@/lib/utils'
 import { User } from 'lucide-react'
 import { motion } from 'motion/react'
 
-const COLUMNS: { id: Status; title: string }[] = [
-  { id: 'TODO', title: 'A Fazer' },
-  { id: 'IN_PROGRESS', title: 'Em Progresso' },
-  { id: 'BLOCKED', title: 'Bloqueado' },
-  { id: 'DONE', title: 'Concluído' },
+const COLUMNS: { id: Status; title: string; dot: string; ring: string }[] = [
+  { id: 'TODO',        title: 'A Fazer',       dot: 'bg-zinc-500',    ring: 'ring-zinc-500/20'    },
+  { id: 'IN_PROGRESS', title: 'Em Progresso',  dot: 'bg-blue-400',    ring: 'ring-blue-400/20'    },
+  { id: 'BLOCKED',     title: 'Bloqueado',     dot: 'bg-red-400',     ring: 'ring-red-400/20'     },
+  { id: 'DONE',        title: 'Concluído',     dot: 'bg-emerald-400', ring: 'ring-emerald-400/20' },
 ]
 
 export function Kanban() {
@@ -69,10 +69,10 @@ export function Kanban() {
 
   return (
     <div className="h-full flex flex-col">
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight text-white">Orquestração</h1>
-          <p className="text-zinc-400">Gerencie e acompanhe os chamados de suporte.</p>
+          <h1 className="text-xl font-semibold text-white">Orquestração</h1>
+          <p className="text-zinc-500 text-sm mt-0.5">Gerencie e acompanhe os chamados de suporte.</p>
         </div>
       </div>
 
@@ -85,17 +85,17 @@ export function Kanban() {
             onDragLeave={() => setDragOverCol(null)}
             onDrop={() => handleDrop(col.id)}
           >
-            <div className="flex items-center justify-between mb-4 px-2">
-              <h3 className="font-semibold text-zinc-300 flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-emerald-500/50" />
+            <div className="flex items-center justify-between mb-3 px-1">
+              <h3 className="text-sm font-medium text-zinc-300 flex items-center gap-2">
+                <span className={`w-2 h-2 rounded-full ${col.dot}`} />
                 {col.title}
               </h3>
-              <span className="text-xs text-zinc-500 bg-white/5 px-2 py-0.5 rounded-full">
+              <span className="text-xs text-zinc-600 tabular-nums">
                 {getTicketsByStatus(col.id).length}
               </span>
             </div>
 
-            <div className={`flex-1 space-y-3 rounded-xl transition-colors duration-150 p-1 -m-1 ${dragOverCol === col.id && draggedId ? 'bg-emerald-500/10 ring-1 ring-emerald-500/30' : ''}`}>
+            <div className={`flex-1 space-y-2 rounded-xl transition-all duration-150 p-1 -m-1 ${dragOverCol === col.id && draggedId ? `bg-white/[0.03] ring-1 ${col.ring}` : ''}`}>
               {getTicketsByStatus(col.id).map((ticket) => (
                 <motion.div
                   key={ticket.id}

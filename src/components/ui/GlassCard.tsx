@@ -11,16 +11,12 @@ const GlassCard = forwardRef<HTMLDivElement, GlassCardProps>(
       <div
         ref={ref}
         className={cn(
-          "relative overflow-hidden rounded-2xl border border-white/5 bg-zinc-900/60 backdrop-blur-xl shadow-xl transition-all duration-300",
-          variant === "hover" && "hover:bg-zinc-800/60 hover:border-white/10 hover:shadow-2xl hover:-translate-y-1 cursor-pointer",
+          "rounded-xl border border-white/[0.07] bg-zinc-950 shadow-sm transition-all duration-200",
+          variant === "hover" && "hover:bg-zinc-900 hover:border-white/[0.12] cursor-pointer",
           className
         )}
         {...props}
-      >
-        {/* Inner shine effect */}
-        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
-        <div className="relative z-10">{props.children}</div>
-      </div>
+      />
     );
   }
 );

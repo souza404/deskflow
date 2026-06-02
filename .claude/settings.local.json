@@ -19,7 +19,9 @@
       "Bash(git add *)",
       "Bash(Start-Sleep -Seconds 4)",
       "Bash(Get-Content \"C:\\\\Users\\\\gusta\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-gusta-Downloads-deskflow\\\\4cfc3419-141b-44e7-966f-cf76e54c9340\\\\tasks\\\\b1o1rt99f.output\" -Tail 20)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(git push *)",
+      "mcp__plugin_context-mode_context-mode__ctx_fetch_and_index"
     ]
   }
 }
