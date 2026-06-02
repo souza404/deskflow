@@ -3,7 +3,7 @@ import { GlassCard } from '@/components/ui/GlassCard'
 import { Badge } from '@/components/ui/Badge'
 import { SLATimer } from '@/components/SLATimer'
 import { TicketDetailModal } from '@/components/TicketDetailModal'
-import { getTickets, subscribeToTickets } from '@/lib/tickets'
+import { getTickets, subscribeToTickets, updateTicket } from '@/lib/tickets'
 import { Ticket, Status } from '@/lib/utils'
 import { MoreHorizontal, User } from 'lucide-react'
 import { motion } from 'motion/react'
@@ -19,6 +19,8 @@ export function Kanban() {
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
   const [loading, setLoading] = useState(true)
+  const [draggedId, setDraggedId] = useState<string | null>(null)
+  const [dragOverCol, setDragOverCol] = useState<Status | null>(null)
   const selectedTicketRef = useRef<Ticket | null>(null)
 
   useEffect(() => {
@@ -43,6 +45,16 @@ export function Kanban() {
 
   const getTicketsByStatus = (status: Status) => tickets.filter((t) => t.status === status)
 
+  const handleDrop = async (targetStatus: Status) => {
+    if (!draggedId) return
+    const ticket = tickets.find((t) => t.id === draggedId)
+    if (!ticket || ticket.status === targetStatus) return
+    setTickets((prev) => prev.map((t) => t.id === draggedId ? { ...t, status: targetStatus } : t))
+    setDraggedId(null)
+    setDragOverCol(null)
+    await updateTicket(draggedId, { status: targetStatus })
+  }
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-[60vh]">
@@ -62,7 +74,13 @@ export function Kanban() {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 h-full overflow-x-auto pb-4">
         {COLUMNS.map((col) => (
-          <div key={col.id} className="flex flex-col h-full min-w-[280px]">
+          <div
+            key={col.id}
+            className="flex flex-col h-full min-w-[280px]"
+            onDragOver={(e) => { e.preventDefault(); setDragOverCol(col.id) }}
+            onDragLeave={() => setDragOverCol(null)}
+            onDrop={() => handleDrop(col.id)}
+          >
             <div className="flex items-center justify-between mb-4 px-2">
               <h3 className="font-semibold text-zinc-300 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-emerald-500/50" />
@@ -73,7 +91,7 @@ export function Kanban() {
               </span>
             </div>
 
-            <div className="flex-1 space-y-3">
+            <div className={`flex-1 space-y-3 rounded-xl transition-colors duration-150 p-1 -m-1 ${dragOverCol === col.id && draggedId ? 'bg-emerald-500/10 ring-1 ring-emerald-500/30' : ''}`}>
               {getTicketsByStatus(col.id).map((ticket) => (
                 <motion.div
                   key={ticket.id}
@@ -81,7 +99,12 @@ export function Kanban() {
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.2 }}
+                  draggable
+                  onDragStart={() => setDraggedId(ticket.id)}
+                  onDragEnd={() => { setDraggedId(null); setDragOverCol(null) }}
                   onClick={() => setSelectedTicket(ticket)}
+                  className={draggedId === ticket.id ? 'opacity-40' : ''}
+                  style={{ cursor: 'grab' }}
                 >
                   <GlassCard
                     variant="hover"
