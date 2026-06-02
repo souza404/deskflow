@@ -1,0 +1,5 @@
+{
+  "name": "DeskFlow",
+  "description": "A corporate Helpdesk system with a Liquid Glass Dark UI, featuring SLA management and AI-assisted ticket creation.",
+  "requestFramePermissions": []
+}

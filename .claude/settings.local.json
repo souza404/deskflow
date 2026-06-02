@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find C:\\\\\\\\Users\\\\\\\\gusta\\\\\\\\Downloads\\\\\\\\deskflow\\\\\\\\src -type f -name \"*.ts\" -o -name \"*.tsx\" -o -name \"*.json\")",
+      "Bash(ls *)",
+      "mcp__plugin_context-mode_context-mode__ctx_batch_execute",
+      "mcp__plugin_context-mode_context-mode__ctx_execute",
+      "mcp__plugin_context-mode_context-mode__ctx_search",
+      "Bash(npm run *)",
+      "Bash(npm install *)",
+      "Bash(del *)",
+      "Bash(New-Item -Path \"C:\\\\Users\\\\gusta\\\\Downloads\\\\deskflow\\\\.env.local\" -ItemType File -Force)",
+      "Bash(Out-Null)",
+      "Bash(Set-Content \"C:\\\\Users\\\\gusta\\\\Downloads\\\\deskflow\\\\.env.local\" -Value \"VITE_SUPABASE_URL=https://wwnubuqqstssaazisvjy.supabase.co`nVITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Ind3bnVidXFxc3Rzc2Fhemlzdmp5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzExOTYyMzQsImV4cCI6MjA4Njc3MjIzNH0.iWvTcuTS0U5y8xeSfRFP3tyrK2sW5KQ0KoIs7KOo0WY\" -Encoding utf8)",
+      "PowerShell(Start-Process \"http://localhost:3000/login\")",
+      "PowerShell(Start-Process \"http://localhost:3000/portal\")",
+      "Bash(git init *)",
+      "Bash(git remote *)",
+      "Bash(git add *)",
+      "Bash(Start-Sleep -Seconds 4)",
+      "Bash(Get-Content \"C:\\\\Users\\\\gusta\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-gusta-Downloads-deskflow\\\\4cfc3419-141b-44e7-966f-cf76e54c9340\\\\tasks\\\\b1o1rt99f.output\" -Tail 20)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}
