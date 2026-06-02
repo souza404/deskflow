@@ -34,6 +34,7 @@ export function TicketDetailModal({ ticket, isOpen, onClose, onUpdate, onDelete 
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const commentsEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -73,9 +74,16 @@ export function TicketDetailModal({ ticket, isOpen, onClose, onUpdate, onDelete 
   }
 
   const handleDelete = async () => {
-    await deleteTicket(ticket.id)
-    onDelete(ticket.id)
-    onClose()
+    setDeleting(true)
+    try {
+      await deleteTicket(ticket.id)
+      onDelete(ticket.id)
+      onClose()
+    } catch {
+      setDeleting(false)
+      setConfirmDelete(false)
+      alert('Erro ao excluir o chamado. Verifique as permissões no Supabase.')
+    }
   }
 
   const handleAddComment = async () => {
@@ -224,25 +232,36 @@ export function TicketDetailModal({ ticket, isOpen, onClose, onUpdate, onDelete 
             </div>
 
             {/* Footer */}
-            <div className="p-4 bg-zinc-900/50 border-t border-white/5 flex justify-between items-center text-xs text-zinc-500">
-              <div className="flex items-center gap-2">
+            <div className="p-4 bg-zinc-900/50 border-t border-white/5 flex justify-between items-center">
+              <div className="flex items-center gap-2 text-xs text-zinc-500">
                 <Calendar className="w-3 h-3" />
                 Criado em {format(new Date(ticket.createdAt), 'dd/MM/yyyy')}
                 {ticket.closedAt && <span>· Fechado em {format(new Date(ticket.closedAt), 'dd/MM/yyyy')}</span>}
               </div>
               {confirmDelete ? (
                 <div className="flex items-center gap-2">
-                  <span className="text-red-400">Confirmar exclusão?</span>
-                  <button onClick={handleDelete} className="text-red-400 hover:text-red-300 font-medium transition-colors">Sim</button>
-                  <button onClick={() => setConfirmDelete(false)} className="text-zinc-400 hover:text-white transition-colors">Não</button>
+                  <span className="text-sm text-red-400 font-medium">Excluir chamado?</span>
+                  <button
+                    onClick={handleDelete}
+                    disabled={deleting}
+                    className="px-3 py-1 text-xs bg-red-500/20 text-red-400 border border-red-500/30 rounded-lg hover:bg-red-500/30 transition-colors disabled:opacity-50"
+                  >
+                    {deleting ? 'Excluindo...' : 'Confirmar'}
+                  </button>
+                  <button
+                    onClick={() => setConfirmDelete(false)}
+                    className="px-3 py-1 text-xs bg-white/5 text-zinc-400 border border-white/10 rounded-lg hover:bg-white/10 transition-colors"
+                  >
+                    Cancelar
+                  </button>
                 </div>
               ) : (
                 <button
                   onClick={() => setConfirmDelete(true)}
-                  className="flex items-center gap-1.5 text-zinc-500 hover:text-red-400 transition-colors"
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs bg-red-500/10 text-red-400 border border-red-500/20 rounded-lg hover:bg-red-500/20 hover:border-red-500/40 transition-all"
                 >
                   <Trash2 className="w-3 h-3" />
-                  Excluir chamado
+                  Excluir
                 </button>
               )}
             </div>

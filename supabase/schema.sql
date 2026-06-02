@@ -48,6 +48,9 @@ create policy "tickets_insert_anon" on public.tickets for insert
 create policy "tickets_update_agents" on public.tickets for update
   using (auth.role() = 'authenticated');
 
+create policy "tickets_delete_agents" on public.tickets for delete
+  using (auth.role() = 'authenticated');
+
 create policy "comments_select" on public.comments for select
   using (auth.role() = 'authenticated');
 
