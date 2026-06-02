@@ -56,6 +56,11 @@ export async function updateTicket(
   if (error) throw error
 }
 
+export async function deleteTicket(id: string) {
+  const { error } = await supabase.from('tickets').delete().eq('id', id)
+  if (error) throw error
+}
+
 export async function addComment(
   ticketId: string,
   text: string,

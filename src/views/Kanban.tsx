@@ -5,7 +5,7 @@ import { SLATimer } from '@/components/SLATimer'
 import { TicketDetailModal } from '@/components/TicketDetailModal'
 import { getTickets, subscribeToTickets, updateTicket } from '@/lib/tickets'
 import { Ticket, Status } from '@/lib/utils'
-import { MoreHorizontal, User } from 'lucide-react'
+import { User } from 'lucide-react'
 import { motion } from 'motion/react'
 
 const COLUMNS: { id: Status; title: string }[] = [
@@ -45,6 +45,10 @@ export function Kanban() {
 
   const getTicketsByStatus = (status: Status) => tickets.filter((t) => t.status === status)
 
+  const handleDelete = (id: string) => {
+    setTickets((prev) => prev.filter((t) => t.id !== id))
+  }
+
   const handleDrop = async (targetStatus: Status) => {
     if (!draggedId) return
     const ticket = tickets.find((t) => t.id === draggedId)
@@ -72,11 +76,11 @@ export function Kanban() {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 h-full overflow-x-auto pb-4">
+      <div className="flex gap-5 overflow-x-auto pb-4 min-h-0 flex-1">
         {COLUMNS.map((col) => (
           <div
             key={col.id}
-            className="flex flex-col h-full min-w-[280px]"
+            className="flex flex-col shrink-0 w-72"
             onDragOver={(e) => { e.preventDefault(); setDragOverCol(col.id) }}
             onDragLeave={() => setDragOverCol(null)}
             onDrop={() => handleDrop(col.id)}
@@ -108,50 +112,37 @@ export function Kanban() {
                 >
                   <GlassCard
                     variant="hover"
-                    className="p-4 flex flex-col gap-3 group border-white/5 bg-zinc-900/40"
+                    className="p-3.5 flex flex-col gap-2.5 border-white/5 bg-zinc-900/50"
                   >
-                    <div className="flex justify-between items-start">
+                    <div className="flex items-center gap-2">
                       <Badge
                         variant={
-                          ticket.type === 'INCIDENT'
-                            ? 'danger'
-                            : ticket.type === 'PROBLEM'
-                            ? 'warning'
-                            : ticket.type === 'DEMAND'
-                            ? 'info'
+                          ticket.type === 'INCIDENT' ? 'danger'
+                            : ticket.type === 'PROBLEM' ? 'warning'
+                            : ticket.type === 'DEMAND' ? 'info'
                             : 'success'
                         }
                         className="text-[10px] px-1.5 py-0"
                       >
                         {ticket.type}
                       </Badge>
-                      <button className="text-zinc-500 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity">
-                        <MoreHorizontal className="w-4 h-4" />
-                      </button>
+                      <span className="text-[10px] text-zinc-600 font-mono ml-auto">{ticket.id.slice(0, 8)}</span>
                     </div>
 
-                    <div>
-                      <h4 className="font-medium text-sm text-zinc-200 line-clamp-2 mb-1">
-                        {ticket.title}
-                      </h4>
-                      <p className="text-xs text-zinc-500 line-clamp-2">{ticket.description}</p>
-                    </div>
+                    <h4 className="font-medium text-sm text-zinc-200 line-clamp-2 leading-snug">
+                      {ticket.title}
+                    </h4>
 
-                    <div className="mt-auto pt-3 border-t border-white/5 flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        {ticket.assignee ? (
-                          <div className="w-6 h-6 rounded-full bg-emerald-900/50 border border-emerald-500/20 flex items-center justify-center text-[10px] text-emerald-400">
-                            {ticket.assignee.split(' ').map((n) => n[0]).join('')}
-                          </div>
-                        ) : (
-                          <div className="w-6 h-6 rounded-full bg-zinc-800 border border-white/5 flex items-center justify-center text-zinc-500">
-                            <User className="w-3 h-3" />
-                          </div>
-                        )}
-                        <span className="text-xs text-zinc-500 font-mono">
-                          {ticket.id.slice(0, 8)}
-                        </span>
-                      </div>
+                    <div className="flex items-center justify-between pt-1 border-t border-white/5">
+                      {ticket.assignee ? (
+                        <div className="w-5 h-5 rounded-full bg-emerald-900/60 border border-emerald-500/20 flex items-center justify-center text-[9px] text-emerald-400 font-medium">
+                          {ticket.assignee.split(' ').map((n) => n[0]).join('')}
+                        </div>
+                      ) : (
+                        <div className="w-5 h-5 rounded-full bg-zinc-800 border border-white/5 flex items-center justify-center text-zinc-600">
+                          <User className="w-2.5 h-2.5" />
+                        </div>
+                      )}
                       <SLATimer ticket={ticket} />
                     </div>
                   </GlassCard>
@@ -168,6 +159,7 @@ export function Kanban() {
           isOpen={!!selectedTicket}
           onClose={() => setSelectedTicket(null)}
           onUpdate={(updated) => setSelectedTicket(updated)}
+          onDelete={handleDelete}
         />
       )}
     </div>

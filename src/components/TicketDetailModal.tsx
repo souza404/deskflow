@@ -5,9 +5,9 @@ import { Badge } from '@/components/ui/Badge'
 import { Select } from '@/components/ui/Select'
 import { Input } from '@/components/ui/Input'
 import { Ticket, Status, Comment } from '@/lib/utils'
-import { updateTicket, addComment as addCommentApi, getProfiles } from '@/lib/tickets'
+import { updateTicket, addComment as addCommentApi, getProfiles, deleteTicket } from '@/lib/tickets'
 import { useAuth } from '@/contexts/AuthContext'
-import { X, Send, MessageSquare, Calendar } from 'lucide-react'
+import { X, Send, MessageSquare, Calendar, Trash2 } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import { format } from 'date-fns'
 
@@ -22,9 +22,10 @@ interface TicketDetailModalProps {
   isOpen: boolean
   onClose: () => void
   onUpdate: (updatedTicket: Ticket) => void
+  onDelete: (id: string) => void
 }
 
-export function TicketDetailModal({ ticket, isOpen, onClose, onUpdate }: TicketDetailModalProps) {
+export function TicketDetailModal({ ticket, isOpen, onClose, onUpdate, onDelete }: TicketDetailModalProps) {
   const { user } = useAuth()
   const [status, setStatus] = useState<Status>(ticket.status)
   const [assigneeId, setAssigneeId] = useState<string>(ticket.assignee_id || '')
@@ -32,6 +33,7 @@ export function TicketDetailModal({ ticket, isOpen, onClose, onUpdate }: TicketD
   const [comments, setComments] = useState<Comment[]>(ticket.comments || [])
   const [profiles, setProfiles] = useState<Profile[]>([])
   const [saving, setSaving] = useState(false)
+  const [confirmDelete, setConfirmDelete] = useState(false)
   const commentsEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -68,6 +70,12 @@ export function TicketDetailModal({ ticket, isOpen, onClose, onUpdate }: TicketD
     const profile = profiles.find((p) => p.id === newId)
     await updateTicket(ticket.id, { assignee_id: newId || null })
     onUpdate({ ...ticket, assignee_id: newId || undefined, assignee: profile?.name })
+  }
+
+  const handleDelete = async () => {
+    await deleteTicket(ticket.id)
+    onDelete(ticket.id)
+    onClose()
   }
 
   const handleAddComment = async () => {
@@ -220,9 +228,22 @@ export function TicketDetailModal({ ticket, isOpen, onClose, onUpdate }: TicketD
               <div className="flex items-center gap-2">
                 <Calendar className="w-3 h-3" />
                 Criado em {format(new Date(ticket.createdAt), 'dd/MM/yyyy')}
+                {ticket.closedAt && <span>· Fechado em {format(new Date(ticket.closedAt), 'dd/MM/yyyy')}</span>}
               </div>
-              {ticket.closedAt && (
-                <div>Fechado em {format(new Date(ticket.closedAt), 'dd/MM/yyyy')}</div>
+              {confirmDelete ? (
+                <div className="flex items-center gap-2">
+                  <span className="text-red-400">Confirmar exclusão?</span>
+                  <button onClick={handleDelete} className="text-red-400 hover:text-red-300 font-medium transition-colors">Sim</button>
+                  <button onClick={() => setConfirmDelete(false)} className="text-zinc-400 hover:text-white transition-colors">Não</button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirmDelete(true)}
+                  className="flex items-center gap-1.5 text-zinc-500 hover:text-red-400 transition-colors"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  Excluir chamado
+                </button>
               )}
             </div>
           </GlassCard>
