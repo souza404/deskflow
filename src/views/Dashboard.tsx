@@ -5,7 +5,7 @@ import { Ticket, getSLAStatus } from '@/lib/utils'
 import {
   CheckCircle2, Clock, TrendingUp, FileDown,
   Zap, AlertCircle, Layers, Wrench,
-  ShieldCheck, ShieldAlert, Activity,
+  ShieldCheck, ShieldAlert, Activity, CalendarDays,
 } from 'lucide-react'
 import { format, differenceInMinutes } from 'date-fns'
 import { ptBR } from 'date-fns/locale'
@@ -25,17 +25,58 @@ const TYPE_LABEL: Record<string, string> = {
   INCIDENT: 'Incidente', PROBLEM: 'Problema', DEMAND: 'Demanda', REQUEST: 'Requisição',
 }
 
+const PRESETS = [
+  { id: '7d',  label: '7 dias',  days: 7  },
+  { id: '30d', label: '30 dias', days: 30 },
+  { id: '90d', label: '90 dias', days: 90 },
+  { id: 'all', label: 'Tudo',    days: 0  },
+] as const
+
+type PresetId = typeof PRESETS[number]['id'] | 'custom'
+
+function toLocalDateStr(d: Date) {
+  return d.toISOString().slice(0, 10)
+}
+
 export function Dashboard() {
-  const [tickets, setTickets] = useState<Ticket[]>([])
-  const [loading, setLoading] = useState(true)
-  const [exporting, setExporting] = useState(false)
+  const [tickets, setTickets]         = useState<Ticket[]>([])
+  const [loading, setLoading]         = useState(true)
+  const [exporting, setExporting]     = useState(false)
+  const [dateFrom, setDateFrom]       = useState('')
+  const [dateTo, setDateTo]           = useState('')
+  const [activePreset, setActivePreset] = useState<PresetId>('all')
 
   useEffect(() => {
     getTickets().then((data) => { setTickets(data); setLoading(false) })
   }, [])
 
-  const closedTickets  = tickets.filter((t) => t.status === 'DONE')
-  const activeTickets  = tickets.filter((t) => t.status !== 'DONE')
+  const applyPreset = (id: typeof PRESETS[number]['id']) => {
+    setActivePreset(id)
+    if (id === 'all') {
+      setDateFrom('')
+      setDateTo('')
+    } else {
+      const days = PRESETS.find((p) => p.id === id)!.days
+      setDateFrom(toLocalDateStr(new Date(Date.now() - days * 24 * 60 * 60 * 1000)))
+      setDateTo(toLocalDateStr(new Date()))
+    }
+  }
+
+  const handleDateInput = (field: 'from' | 'to', val: string) => {
+    if (field === 'from') setDateFrom(val)
+    else setDateTo(val)
+    setActivePreset('custom')
+  }
+
+  const filteredTickets = tickets.filter((t) => {
+    const created = new Date(t.createdAt)
+    if (dateFrom && created < new Date(dateFrom + 'T00:00:00')) return false
+    if (dateTo   && created > new Date(dateTo   + 'T23:59:59')) return false
+    return true
+  })
+
+  const closedTickets  = filteredTickets.filter((t) => t.status === 'DONE')
+  const activeTickets  = filteredTickets.filter((t) => t.status !== 'DONE')
   const totalClosed    = closedTickets.length
   const slaBreached    = closedTickets.filter((t) => getSLAStatus(t).isBreached).length
   const slaPercentage  = totalClosed > 0 ? Math.round(((totalClosed - slaBreached) / totalClosed) * 100) : 100
@@ -46,18 +87,26 @@ export function Dashboard() {
     const totalMin = resolved.reduce(
       (acc, t) => acc + differenceInMinutes(new Date(t.closedAt!), new Date(t.createdAt)), 0
     )
-    const avg = totalMin / resolved.length
+    const avg   = totalMin / resolved.length
     const hours = Math.floor(avg / 60)
     const mins  = Math.round(avg % 60)
     return hours >= 24 ? `${Math.floor(hours / 24)}d ${hours % 24}h` : `${hours}h ${mins}m`
   })()
 
-  const totalAll = tickets.length || 1
+  const totalAll = filteredTickets.length || 1
+
+  const periodLabel = (() => {
+    if (!dateFrom && !dateTo) return 'Todos os registros'
+    if (dateFrom && dateTo)
+      return `${format(new Date(dateFrom + 'T12:00:00'), 'dd/MM/yyyy', { locale: ptBR })} – ${format(new Date(dateTo + 'T12:00:00'), 'dd/MM/yyyy', { locale: ptBR })}`
+    if (dateFrom) return `A partir de ${format(new Date(dateFrom + 'T12:00:00'), 'dd/MM/yyyy', { locale: ptBR })}`
+    return `Até ${format(new Date(dateTo + 'T12:00:00'), 'dd/MM/yyyy', { locale: ptBR })}`
+  })()
 
   const handleExportPDF = async () => {
     setExporting(true)
     try {
-      const doc  = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
+      const doc   = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
       const pageW = doc.internal.pageSize.getWidth()
       const now   = new Date()
 
@@ -72,16 +121,18 @@ export function Dashboard() {
 
       doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(20, 20, 20)
       doc.text('Relatório Gerencial de Chamados', 10, 26)
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(100, 100, 100)
+      doc.text(`Período: ${periodLabel}`, 10, 31.5)
 
       const kpis = [
-        { label: 'Total Fechado',  value: String(totalClosed),         sub: 'chamados resolvidos', color: [16, 185, 129] as [number,number,number] },
-        { label: 'SLA Cumprido',   value: `${slaPercentage}%`,         sub: 'dentro do prazo',     color: [59, 130, 246] as [number,number,number] },
-        { label: 'Tempo Médio',    value: avgResolutionTime,            sub: 'tempo de resolução',  color: [245, 158, 11] as [number,number,number] },
-        { label: 'Chamados Ativos',value: String(activeTickets.length), sub: 'em aberto',           color: [139, 92, 246] as [number,number,number] },
+        { label: 'Total Fechado',   value: String(totalClosed),          sub: 'chamados resolvidos', color: [16, 185, 129] as [number,number,number] },
+        { label: 'SLA Cumprido',    value: `${slaPercentage}%`,          sub: 'dentro do prazo',     color: [59, 130, 246] as [number,number,number] },
+        { label: 'Tempo Médio',     value: avgResolutionTime,             sub: 'tempo de resolução',  color: [245, 158, 11] as [number,number,number] },
+        { label: 'Chamados Ativos', value: String(activeTickets.length),  sub: 'em aberto',           color: [139, 92, 246] as [number,number,number] },
       ]
       const cardW = (pageW - 20 - 9) / 4
       kpis.forEach((kpi, i) => {
-        const x = 10 + i * (cardW + 3), y = 32
+        const x = 10 + i * (cardW + 3), y = 36
         doc.setDrawColor(...kpi.color); doc.setLineWidth(0.8)
         doc.setFillColor(248, 248, 248); doc.roundedRect(x, y, cardW, 22, 2, 2, 'FD')
         doc.setFillColor(...kpi.color); doc.rect(x, y, 2, 22, 'F')
@@ -94,7 +145,7 @@ export function Dashboard() {
       })
 
       doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(30, 30, 30)
-      doc.text('Chamados Fechados', 10, 64)
+      doc.text('Chamados Fechados', 10, 68)
 
       const rows = closedTickets.map((t) => {
         const sla = getSLAStatus(t)
@@ -111,9 +162,9 @@ export function Dashboard() {
       })
 
       autoTable(doc, {
-        startY: 67,
+        startY: 71,
         head: [['ID', 'Título', 'Tipo', 'Criticidade', 'Responsável', 'Aberto em', 'Fechado em', 'SLA']],
-        body: rows.length > 0 ? rows : [['—', 'Nenhum chamado fechado', '', '', '', '', '', '']],
+        body: rows.length > 0 ? rows : [['—', 'Nenhum chamado fechado no período', '', '', '', '', '', '']],
         styles: { fontSize: 8, cellPadding: 3, textColor: [40, 40, 40], lineColor: [220, 220, 220], lineWidth: 0.2 },
         headStyles: { fillColor: [24, 24, 27], textColor: [200, 200, 200], fontStyle: 'bold', fontSize: 7.5 },
         alternateRowStyles: { fillColor: [248, 248, 250] },
@@ -130,7 +181,12 @@ export function Dashboard() {
       for (let p = 1; p <= totalPages; p++) {
         doc.setPage(p)
         doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(160, 160, 160)
-        doc.text(`DeskFlow — Relatório Gerencial  |  Página ${p} de ${totalPages}`, pageW / 2, doc.internal.pageSize.getHeight() - 5, { align: 'center' })
+        doc.text(
+          `DeskFlow — Relatório Gerencial  |  ${periodLabel}  |  Página ${p} de ${totalPages}`,
+          pageW / 2,
+          doc.internal.pageSize.getHeight() - 5,
+          { align: 'center' }
+        )
       }
 
       doc.save(`deskflow-relatorio-${format(now, 'yyyy-MM-dd')}.pdf`)
@@ -163,6 +219,46 @@ export function Dashboard() {
           <FileDown className="w-4 h-4" />
           {exporting ? 'Gerando PDF…' : 'Exportar PDF'}
         </button>
+      </div>
+
+      {/* Date filter bar */}
+      <div className="flex flex-wrap items-center gap-2">
+        <CalendarDays className="w-4 h-4 text-zinc-600 shrink-0" />
+        <div className="flex items-center gap-1.5">
+          {PRESETS.map((p) => (
+            <button
+              key={p.id}
+              onClick={() => applyPreset(p.id)}
+              className={cn(
+                'px-3 py-1.5 rounded-lg text-xs font-semibold transition-all',
+                activePreset === p.id
+                  ? 'bg-emerald-500/15 border border-emerald-500/30 text-emerald-400'
+                  : 'bg-zinc-900/60 border border-white/[0.07] text-zinc-500 hover:text-zinc-300 hover:border-white/[0.14]'
+              )}
+            >
+              {p.label}
+            </button>
+          ))}
+        </div>
+        <div className="flex items-center gap-2 ml-1">
+          <span className="text-xs text-zinc-600 shrink-0">De</span>
+          <input
+            type="date"
+            value={dateFrom}
+            onChange={(e) => handleDateInput('from', e.target.value)}
+            className="px-2.5 py-1.5 rounded-lg border border-white/[0.07] bg-zinc-900/60 text-xs text-zinc-300 focus:border-emerald-500/50 focus:outline-none [color-scheme:dark]"
+          />
+          <span className="text-xs text-zinc-600 shrink-0">até</span>
+          <input
+            type="date"
+            value={dateTo}
+            onChange={(e) => handleDateInput('to', e.target.value)}
+            className="px-2.5 py-1.5 rounded-lg border border-white/[0.07] bg-zinc-900/60 text-xs text-zinc-300 focus:border-emerald-500/50 focus:outline-none [color-scheme:dark]"
+          />
+        </div>
+        {activePreset !== 'all' && (
+          <span className="text-[11px] text-zinc-600 ml-1 italic">{periodLabel}</span>
+        )}
       </div>
 
       {/* KPI cards */}
@@ -222,7 +318,7 @@ export function Dashboard() {
           </div>
           <div className="space-y-3">
             {TYPE_META.map(({ key, label, icon: Icon, color, bar }) => {
-              const count = tickets.filter((t) => t.type === key).length
+              const count = filteredTickets.filter((t) => t.type === key).length
               const pct   = Math.round((count / totalAll) * 100)
               return (
                 <div key={key}>
@@ -274,13 +370,13 @@ export function Dashboard() {
                   <tr>
                     <td colSpan={4} className="px-5 py-12 text-center text-zinc-700 text-sm">
                       <CheckCircle2 className="w-6 h-6 mx-auto mb-2 opacity-30" />
-                      Nenhum chamado fechado ainda.
+                      Nenhum chamado fechado{activePreset !== 'all' ? ' no período selecionado' : ' ainda'}.
                     </td>
                   </tr>
                 ) : (
                   closedTickets.map((ticket, i) => {
                     const breached = getSLAStatus(ticket).isBreached
-                    const meta = TYPE_META.find((m) => m.key === ticket.type)
+                    const meta     = TYPE_META.find((m) => m.key === ticket.type)
                     const TypeIcon = meta?.icon ?? Wrench
                     return (
                       <tr

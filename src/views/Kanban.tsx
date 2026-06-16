@@ -67,21 +67,38 @@ export function Kanban() {
 
   useEffect(() => { selectedTicketRef.current = selectedTicket }, [selectedTicket])
 
-  const load = async () => {
-    const data = await getTickets()
-    setTickets(data)
-    setLoading(false)
-    if (selectedTicketRef.current) {
-      const refreshed = data.find((t) => t.id === selectedTicketRef.current!.id)
-      if (refreshed) setSelectedTicket(refreshed)
+  const mountedRef = useRef(true)
+
+  const refreshTickets = async () => {
+    try {
+      const data = await getTickets()
+      if (!mountedRef.current) return
+      setTickets(data)
+      if (selectedTicketRef.current) {
+        const refreshed = data.find((t) => t.id === selectedTicketRef.current!.id)
+        if (refreshed) setSelectedTicket(refreshed)
+      }
+    } catch {
+      // keep existing tickets on realtime refresh failure
     }
   }
 
   useEffect(() => {
-    load()
-    const unsubscribe = subscribeToTickets(load)
-    getProfiles().then(setProfiles)
-    return unsubscribe
+    mountedRef.current = true
+    Promise.all([getTickets(), getProfiles()])
+      .then(([data, profileData]) => {
+        if (!mountedRef.current) return
+        setTickets(data)
+        setProfiles(profileData)
+      })
+      .catch(() => {})
+      .finally(() => { if (mountedRef.current) setLoading(false) })
+
+    const unsubscribe = subscribeToTickets(refreshTickets)
+    return () => {
+      mountedRef.current = false
+      unsubscribe()
+    }
   }, [])
 
   const activeFilterCount = [
@@ -131,7 +148,7 @@ export function Kanban() {
   }
 
   return (
-    <div className="h-full flex flex-col">
+    <div className="flex flex-col">
       {/* Header */}
       <div className="mb-4 flex items-start justify-between gap-3 flex-wrap">
         <div>
@@ -242,7 +259,7 @@ export function Kanban() {
       </div>
 
       {/* Desktop: all columns */}
-      <div className="hidden md:flex gap-4 overflow-x-auto pb-4 min-h-0 flex-1">
+      <div className="hidden md:flex gap-4 overflow-x-auto pb-4 min-h-[520px]">
         {COLUMNS.map((col) => (
           <KanbanColumn
             key={col.id} col={col}
@@ -259,7 +276,7 @@ export function Kanban() {
       </div>
 
       {/* Mobile: single column */}
-      <div className="flex md:hidden flex-col gap-2 flex-1 overflow-y-auto pb-4">
+      <div className="flex md:hidden flex-col gap-2 overflow-y-auto pb-4 min-h-[400px]">
         {(() => {
           const col = COLUMNS.find((c) => c.id === mobileCol)!
           return (
@@ -352,7 +369,6 @@ function KanbanColumn({
             return (
               <motion.div
                 key={ticket.id}
-                layoutId={ticket.id}
                 initial={{ opacity: 0, y: 8 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.18 }}
