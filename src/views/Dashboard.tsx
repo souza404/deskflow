@@ -106,52 +106,101 @@ export function Dashboard() {
   const handleExportPDF = async () => {
     setExporting(true)
     try {
-      const doc   = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
-      const pageW = doc.internal.pageSize.getWidth()
-      const now   = new Date()
-
-      doc.setFillColor(16, 185, 129)
-      doc.rect(0, 0, pageW, 14, 'F')
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(13); doc.setTextColor(0, 0, 0)
-      doc.text('DeskFlow', 10, 9.5)
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(20, 20, 20)
-      doc.text('Sistema Ágil para Gestão de Incidentes', 38, 9.5)
+      const doc    = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a4' })
+      const pageW  = doc.internal.pageSize.getWidth()
+      const pageH  = doc.internal.pageSize.getHeight()
+      const now    = new Date()
       const dateStr = format(now, "dd/MM/yyyy 'às' HH:mm", { locale: ptBR })
-      doc.text(`Gerado em ${dateStr}`, pageW - 10, 9.5, { align: 'right' })
 
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(20, 20, 20)
-      doc.text('Relatório Gerencial de Chamados', 10, 26)
-      doc.setFont('helvetica', 'normal'); doc.setFontSize(8.5); doc.setTextColor(100, 100, 100)
-      doc.text(`Período: ${periodLabel}`, 10, 31.5)
+      // ── Palette ──────────────────────────────────────────────
+      const C = {
+        black:    [15,  15,  15 ] as [number,number,number],
+        dark:     [30,  30,  30 ] as [number,number,number],
+        mid:      [90,  90,  90 ] as [number,number,number],
+        light:    [150, 150, 150] as [number,number,number],
+        rule:     [220, 220, 220] as [number,number,number],
+        bg:       [250, 250, 250] as [number,number,number],
+        white:    [255, 255, 255] as [number,number,number],
+        accent:   [22,  163, 74 ] as [number,number,number],  // green-600
+        danger:   [185, 28,  28 ] as [number,number,number],  // red-700
+      }
 
+      // ── Header bar (dark) ────────────────────────────────────
+      doc.setFillColor(...C.black)
+      doc.rect(0, 0, pageW, 13, 'F')
+
+      // logo wordmark
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(11); doc.setTextColor(...C.white)
+      doc.text('Desk', 10, 8.8)
+      const deskW = doc.getTextWidth('Desk')
+      doc.setTextColor(...C.accent)
+      doc.text('Flow', 10 + deskW, 8.8)
+
+      // header right — generated date
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(180, 180, 180)
+      doc.text(`Gerado em ${dateStr}`, pageW - 10, 8.8, { align: 'right' })
+
+      // ── Thin accent rule below header ────────────────────────
+      doc.setFillColor(...C.accent)
+      doc.rect(0, 13, pageW, 0.6, 'F')
+
+      // ── Title block ──────────────────────────────────────────
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(14); doc.setTextColor(...C.black)
+      doc.text('Relatório Gerencial de Chamados', 10, 24)
+      doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(...C.light)
+      doc.text(`Período: ${periodLabel}`, 10, 30)
+
+      // ── KPI cards ────────────────────────────────────────────
       const kpis = [
-        { label: 'Total Fechado',   value: String(totalClosed),          sub: 'chamados resolvidos', color: [16, 185, 129] as [number,number,number] },
-        { label: 'SLA Cumprido',    value: `${slaPercentage}%`,          sub: 'dentro do prazo',     color: [59, 130, 246] as [number,number,number] },
-        { label: 'Tempo Médio',     value: avgResolutionTime,             sub: 'tempo de resolução',  color: [245, 158, 11] as [number,number,number] },
-        { label: 'Chamados Ativos', value: String(activeTickets.length),  sub: 'em aberto',           color: [139, 92, 246] as [number,number,number] },
+        { label: 'TOTAL FECHADO',   value: String(totalClosed),         sub: 'chamados resolvidos' },
+        { label: 'SLA CUMPRIDO',    value: `${slaPercentage}%`,         sub: 'dentro do prazo'     },
+        { label: 'TEMPO MÉDIO',     value: avgResolutionTime,            sub: 'tempo de resolução'  },
+        { label: 'CHAMADOS ATIVOS', value: String(activeTickets.length), sub: 'em aberto'           },
       ]
-      const cardW = (pageW - 20 - 9) / 4
+      const gap   = 4
+      const cardW = (pageW - 20 - gap * 3) / 4
+      const cardY = 35
+      const cardH = 22
+
       kpis.forEach((kpi, i) => {
-        const x = 10 + i * (cardW + 3), y = 36
-        doc.setDrawColor(...kpi.color); doc.setLineWidth(0.8)
-        doc.setFillColor(248, 248, 248); doc.roundedRect(x, y, cardW, 22, 2, 2, 'FD')
-        doc.setFillColor(...kpi.color); doc.rect(x, y, 2, 22, 'F')
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(100, 100, 100)
-        doc.text(kpi.label.toUpperCase(), x + 5, y + 7)
-        doc.setFont('helvetica', 'bold'); doc.setFontSize(16); doc.setTextColor(20, 20, 20)
-        doc.text(kpi.value, x + 5, y + 15.5)
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(130, 130, 130)
-        doc.text(kpi.sub, x + 5, y + 20)
+        const x = 10 + i * (cardW + gap)
+
+        // card background + border
+        doc.setFillColor(...C.bg)
+        doc.setDrawColor(...C.rule)
+        doc.setLineWidth(0.3)
+        doc.roundedRect(x, cardY, cardW, cardH, 1.5, 1.5, 'FD')
+
+        // top accent line
+        doc.setFillColor(...C.accent)
+        doc.rect(x, cardY, cardW, 0.8, 'F')
+
+        // label
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(...C.light)
+        doc.text(kpi.label, x + 5, cardY + 8)
+
+        // value
+        doc.setFont('helvetica', 'bold'); doc.setFontSize(17); doc.setTextColor(...C.black)
+        doc.text(kpi.value, x + 5, cardY + 16)
+
+        // sub
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(...C.light)
+        doc.text(kpi.sub, x + 5, cardY + 20.5)
       })
 
-      doc.setFont('helvetica', 'bold'); doc.setFontSize(10); doc.setTextColor(30, 30, 30)
-      doc.text('Chamados Fechados', 10, 68)
+      // ── Section heading ──────────────────────────────────────
+      const tableY = cardY + cardH + 8
+      doc.setFont('helvetica', 'bold'); doc.setFontSize(9); doc.setTextColor(...C.dark)
+      doc.text('Chamados Encerrados', 10, tableY - 2.5)
+      doc.setDrawColor(...C.rule); doc.setLineWidth(0.3)
+      doc.line(10, tableY, pageW - 10, tableY)
 
+      // ── Table ────────────────────────────────────────────────
       const rows = closedTickets.map((t) => {
         const sla = getSLAStatus(t)
         return [
           t.id.slice(0, 8),
-          t.title.length > 55 ? t.title.slice(0, 55) + '…' : t.title,
+          t.title.length > 52 ? t.title.slice(0, 52) + '…' : t.title,
           TYPE_LABEL[t.type] ?? t.type,
           t.priority ?? '—',
           t.assignee ?? '—',
@@ -162,31 +211,47 @@ export function Dashboard() {
       })
 
       autoTable(doc, {
-        startY: 71,
-        head: [['ID', 'Título', 'Tipo', 'Criticidade', 'Responsável', 'Aberto em', 'Fechado em', 'SLA']],
+        startY: tableY + 2,
+        head: [['ID', 'Título', 'Tipo', 'Criticidade', 'Responsável', 'Abertura', 'Fechamento', 'SLA']],
         body: rows.length > 0 ? rows : [['—', 'Nenhum chamado fechado no período', '', '', '', '', '', '']],
-        styles: { fontSize: 8, cellPadding: 3, textColor: [40, 40, 40], lineColor: [220, 220, 220], lineWidth: 0.2 },
-        headStyles: { fillColor: [24, 24, 27], textColor: [200, 200, 200], fontStyle: 'bold', fontSize: 7.5 },
-        alternateRowStyles: { fillColor: [248, 248, 250] },
-        columnStyles: { 0: { cellWidth: 20, font: 'courier' }, 1: { cellWidth: 'auto' }, 7: { halign: 'center', fontStyle: 'bold' } },
+        styles: {
+          fontSize: 7.5,
+          cellPadding: { top: 2.8, bottom: 2.8, left: 3, right: 3 },
+          textColor: C.dark,
+          lineColor: C.rule,
+          lineWidth: 0.2,
+        },
+        headStyles: {
+          fillColor: [240, 240, 240],
+          textColor: C.mid,
+          fontStyle: 'bold',
+          fontSize: 7,
+        },
+        alternateRowStyles: { fillColor: [252, 252, 252] },
+        columnStyles: {
+          0: { cellWidth: 22, font: 'courier', fontSize: 6.5, textColor: C.light },
+          1: { cellWidth: 'auto' },
+          7: { halign: 'center', fontStyle: 'bold' },
+        },
         didParseCell(data) {
           if (data.column.index === 7 && data.section === 'body') {
-            data.cell.styles.textColor = (data.cell.raw as string) === 'Violado' ? [220, 38, 38] : [16, 185, 129]
+            const isViolado = (data.cell.raw as string) === 'Violado'
+            data.cell.styles.textColor = isViolado ? C.danger : C.accent
           }
         },
         margin: { left: 10, right: 10 },
       })
 
+      // ── Footer on every page ─────────────────────────────────
       const totalPages = (doc as any).internal.getNumberOfPages()
       for (let p = 1; p <= totalPages; p++) {
         doc.setPage(p)
-        doc.setFont('helvetica', 'normal'); doc.setFontSize(7); doc.setTextColor(160, 160, 160)
-        doc.text(
-          `DeskFlow — Relatório Gerencial  |  ${periodLabel}  |  Página ${p} de ${totalPages}`,
-          pageW / 2,
-          doc.internal.pageSize.getHeight() - 5,
-          { align: 'center' }
-        )
+        doc.setDrawColor(...C.rule); doc.setLineWidth(0.2)
+        doc.line(10, pageH - 9, pageW - 10, pageH - 9)
+        doc.setFont('helvetica', 'normal'); doc.setFontSize(6.5); doc.setTextColor(...C.light)
+        doc.text('DeskFlow — Relatório Gerencial', 10, pageH - 5.5)
+        doc.text(`${periodLabel}`, pageW / 2, pageH - 5.5, { align: 'center' })
+        doc.text(`Página ${p} de ${totalPages}`, pageW - 10, pageH - 5.5, { align: 'right' })
       }
 
       doc.save(`deskflow-relatorio-${format(now, 'yyyy-MM-dd')}.pdf`)
