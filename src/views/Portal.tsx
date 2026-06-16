@@ -1,13 +1,32 @@
-import { useState, FormEvent } from 'react'
+import { useState, useRef, FormEvent, DragEvent } from 'react'
 import { GlassCard } from '@/components/ui/GlassCard'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import {
   UploadCloud, CheckCircle2, Wrench, Layers, AlertCircle, Zap,
+  Paperclip, X, FileText, FileImage, File,
 } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
-import { createTicket } from '@/lib/tickets'
+import { createTicket, uploadAttachments } from '@/lib/tickets'
 import { cn } from '@/lib/utils'
+
+const MAX_FILE_SIZE = 10 * 1024 * 1024 // 10 MB
+const MAX_FILES = 5
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function FileIcon({ name }: { name: string }) {
+  const ext = name.split('.').pop()?.toLowerCase() ?? ''
+  if (['jpg','jpeg','png','gif','webp','svg'].includes(ext))
+    return <FileImage className="w-3.5 h-3.5 text-blue-400 shrink-0" strokeWidth={2} />
+  if (['pdf','doc','docx','txt','csv'].includes(ext))
+    return <FileText className="w-3.5 h-3.5 text-amber-400 shrink-0" strokeWidth={2} />
+  return <File className="w-3.5 h-3.5 text-zinc-400 shrink-0" strokeWidth={2} />
+}
 
 const TICKET_TYPES = [
   {
@@ -67,6 +86,9 @@ export function Portal() {
   const [loading, setLoading]         = useState(false)
   const [error, setError]             = useState('')
   const [showPriority, setShowPriority] = useState(false)
+  const [files, setFiles]             = useState<File[]>([])
+  const [dragOver, setDragOver]       = useState(false)
+  const fileInputRef                  = useRef<HTMLInputElement>(null)
 
   const reset = () => {
     setTitle('')
@@ -75,6 +97,32 @@ export function Portal() {
     setPriority('LOW')
     setError('')
     setShowPriority(false)
+    setFiles([])
+  }
+
+  const addFiles = (incoming: File[]) => {
+    setError('')
+    const oversized = incoming.filter(f => f.size > MAX_FILE_SIZE)
+    if (oversized.length) {
+      setError(`Arquivo(s) muito grande(s): ${oversized.map(f => f.name).join(', ')}. Máx. 10 MB.`)
+      return
+    }
+    setFiles(prev => {
+      const merged = [...prev, ...incoming]
+      if (merged.length > MAX_FILES) {
+        setError(`Máximo de ${MAX_FILES} arquivos por chamado.`)
+        return prev.slice(0, MAX_FILES)
+      }
+      return merged
+    })
+  }
+
+  const removeFile = (idx: number) => setFiles(prev => prev.filter((_, i) => i !== idx))
+
+  const handleDrop = (e: DragEvent<HTMLDivElement>) => {
+    e.preventDefault()
+    setDragOver(false)
+    addFiles(Array.from(e.dataTransfer.files))
   }
 
   const handleTypeSelect = (val: string) => {
@@ -87,12 +135,15 @@ export function Portal() {
     setError('')
     setLoading(true)
     try {
-      await createTicket({
+      const ticketId = await createTicket({
         title,
         description,
         type: ticketType,
         priority: ticketType === 'INCIDENT' ? priority : undefined,
       })
+      if (files.length > 0) {
+        await uploadAttachments(ticketId, files)
+      }
       reset()
       setIsSubmitted(true)
       setTimeout(() => setIsSubmitted(false), 3500)
@@ -249,6 +300,59 @@ export function Portal() {
                   />
                 </div>
 
+                {/* File attachment area */}
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-zinc-400 flex items-center gap-1.5">
+                    <Paperclip className="w-3.5 h-3.5" />
+                    Anexos
+                    <span className="text-zinc-600 font-normal">— opcional</span>
+                  </label>
+                  <div
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={(e) => { e.preventDefault(); setDragOver(true) }}
+                    onDragLeave={() => setDragOver(false)}
+                    onDrop={handleDrop}
+                    className={cn(
+                      'flex flex-col items-center justify-center gap-1.5 rounded-xl border border-dashed px-4 py-5 cursor-pointer transition-all',
+                      dragOver
+                        ? 'border-emerald-500/50 bg-emerald-500/[0.06]'
+                        : 'border-white/[0.1] bg-zinc-900/30 hover:border-white/[0.2] hover:bg-zinc-900/50'
+                    )}
+                  >
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => addFiles(Array.from(e.target.files ?? []))}
+                    />
+                    <UploadCloud className={cn('w-5 h-5', dragOver ? 'text-emerald-400' : 'text-zinc-600')} strokeWidth={1.5} />
+                    <p className="text-xs text-zinc-500">
+                      <span className="text-zinc-300 font-medium">Clique para selecionar</span> ou arraste aqui
+                    </p>
+                    <p className="text-[11px] text-zinc-700">PDF, imagens, documentos · máx. {MAX_FILES} arquivos · 10 MB cada</p>
+                  </div>
+
+                  {files.length > 0 && (
+                    <div className="space-y-1.5">
+                      {files.map((file, i) => (
+                        <div key={i} className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-zinc-900/50 border border-white/[0.06]">
+                          <FileIcon name={file.name} />
+                          <span className="text-xs text-zinc-300 flex-1 truncate">{file.name}</span>
+                          <span className="text-[10px] text-zinc-600 shrink-0">{formatFileSize(file.size)}</span>
+                          <button
+                            type="button"
+                            onClick={() => removeFile(i)}
+                            className="text-zinc-600 hover:text-zinc-300 transition-colors shrink-0"
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
                 {error && (
                   <div className="flex items-center gap-2 text-red-400 text-sm bg-red-500/10 border border-red-500/20 rounded-xl px-3.5 py-2.5">
                     <AlertCircle className="w-4 h-4 shrink-0" />
@@ -256,14 +360,7 @@ export function Portal() {
                   </div>
                 )}
 
-                <div className="pt-1 flex items-center justify-between gap-3">
-                  <button
-                    type="button"
-                    className="flex items-center gap-1.5 text-xs text-zinc-500 hover:text-zinc-300 transition-colors px-2 py-1.5 rounded-lg hover:bg-white/[0.05]"
-                  >
-                    <UploadCloud className="w-3.5 h-3.5" />
-                    Anexar arquivo
-                  </button>
+                <div className="pt-1 flex justify-end">
                   <Button
                     type="submit"
                     disabled={loading}
@@ -272,7 +369,7 @@ export function Portal() {
                     {loading ? (
                       <span className="flex items-center gap-2">
                         <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                        Enviando…
+                        {files.length > 0 ? 'Enviando arquivos…' : 'Enviando…'}
                       </span>
                     ) : 'Criar Chamado'}
                   </Button>

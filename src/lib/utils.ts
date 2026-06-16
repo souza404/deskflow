@@ -18,6 +18,12 @@ export interface Comment {
   createdAt: string;
 }
 
+export interface Attachment {
+  name: string;
+  url: string;
+  size: number;
+}
+
 export interface Ticket {
   id: string;
   title: string;
@@ -30,6 +36,7 @@ export interface Ticket {
   assignee?: string;
   assignee_id?: string;
   comments?: Comment[];
+  attachments?: Attachment[];
 }
 
 export const SLA_CONFIG = {

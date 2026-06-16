@@ -1,5 +1,30 @@
 import { supabase } from './supabase'
-import { Ticket, Comment } from './utils'
+import { Ticket, Comment, Attachment } from './utils'
+
+const BUCKET = 'ticket-attachments'
+
+export async function uploadAttachments(ticketId: string, files: File[]): Promise<void> {
+  for (const file of files) {
+    const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, '_')
+    const path = `${ticketId}/${Date.now()}-${safe}`
+    const { error } = await supabase.storage.from(BUCKET).upload(path, file)
+    if (error) throw new Error(`Falha ao enviar "${file.name}": ${error.message}`)
+  }
+}
+
+export async function getAttachments(ticketId: string): Promise<Attachment[]> {
+  const { data, error } = await supabase.storage
+    .from(BUCKET)
+    .list(ticketId, { sortBy: { column: 'created_at', order: 'asc' } })
+  if (error || !data) return []
+  return data
+    .filter((f) => f.name !== '.emptyFolderPlaceholder')
+    .map((f) => ({
+      name: f.name.replace(/^\d{13}-/, ''),
+      url: supabase.storage.from(BUCKET).getPublicUrl(`${ticketId}/${f.name}`).data.publicUrl,
+      size: f.metadata?.size ?? 0,
+    }))
+}
 
 function mapTicket(row: any): Ticket {
   return {
@@ -30,9 +55,14 @@ export async function createTicket(data: {
   description: string
   type: string
   priority?: string
-}) {
-  const { error } = await supabase.from('tickets').insert(data)
+}): Promise<string> {
+  const { data: row, error } = await supabase
+    .from('tickets')
+    .insert(data)
+    .select('id')
+    .single()
   if (error) throw error
+  return row.id
 }
 
 export async function getTickets(): Promise<Ticket[]> {

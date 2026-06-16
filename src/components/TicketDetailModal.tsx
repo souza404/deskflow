@@ -4,12 +4,27 @@ import { Button } from '@/components/ui/Button'
 import { Badge } from '@/components/ui/Badge'
 import { Select } from '@/components/ui/Select'
 import { Input } from '@/components/ui/Input'
-import { Ticket, Status, Comment } from '@/lib/utils'
-import { updateTicket, addComment as addCommentApi, getProfiles, deleteTicket } from '@/lib/tickets'
+import { Ticket, Status, Comment, Attachment } from '@/lib/utils'
+import { updateTicket, addComment as addCommentApi, getProfiles, deleteTicket, getAttachments } from '@/lib/tickets'
 import { useAuth } from '@/contexts/AuthContext'
-import { X, Send, MessageSquare, Calendar, Trash2, Zap, AlertCircle, Layers, Wrench, UserCircle2, Tag } from 'lucide-react'
+import { X, Send, MessageSquare, Calendar, Trash2, Zap, AlertCircle, Layers, Wrench, UserCircle2, Tag, Paperclip, FileText, FileImage, File, ExternalLink } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import { format } from 'date-fns'
+
+function formatFileSize(bytes: number) {
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+}
+
+function AttachmentIcon({ name }: { name: string }) {
+  const ext = name.split('.').pop()?.toLowerCase() ?? ''
+  if (['jpg','jpeg','png','gif','webp','svg'].includes(ext))
+    return <FileImage className="w-4 h-4 text-blue-400 shrink-0" strokeWidth={2} />
+  if (['pdf','doc','docx','txt','csv','xlsx'].includes(ext))
+    return <FileText className="w-4 h-4 text-amber-400 shrink-0" strokeWidth={2} />
+  return <File className="w-4 h-4 text-zinc-400 shrink-0" strokeWidth={2} />
+}
 
 interface Profile {
   id: string
@@ -35,6 +50,7 @@ export function TicketDetailModal({ ticket, isOpen, onClose, onUpdate, onDelete 
   const [saving, setSaving] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [attachments, setAttachments] = useState<Attachment[]>([])
   const commentsEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -45,7 +61,8 @@ export function TicketDetailModal({ ticket, isOpen, onClose, onUpdate, onDelete 
 
   useEffect(() => {
     getProfiles().then(setProfiles)
-  }, [])
+    getAttachments(ticket.id).then(setAttachments)
+  }, [ticket.id])
 
   useEffect(() => {
     commentsEndRef.current?.scrollIntoView({ behavior: 'smooth' })
@@ -172,6 +189,35 @@ export function TicketDetailModal({ ticket, isOpen, onClose, onUpdate, onDelete 
                   {ticket.description}
                 </p>
               </div>
+
+              {/* Attachments */}
+              {attachments.length > 0 && (
+                <div>
+                  <div className="flex items-center gap-2 mb-2">
+                    <Paperclip className="w-3.5 h-3.5 text-zinc-600" strokeWidth={2} />
+                    <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">Anexos</h3>
+                    <span className="text-[10px] font-semibold text-zinc-600 bg-zinc-900 border border-white/[0.07] rounded-full px-1.5 py-0.5">
+                      {attachments.length}
+                    </span>
+                  </div>
+                  <div className="space-y-1.5">
+                    {attachments.map((a, i) => (
+                      <a
+                        key={i}
+                        href={a.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2.5 px-3 py-2 rounded-xl bg-zinc-900/50 border border-white/[0.06] hover:border-white/[0.14] hover:bg-zinc-900/80 transition-all group"
+                      >
+                        <AttachmentIcon name={a.name} />
+                        <span className="text-xs text-zinc-300 flex-1 truncate">{a.name}</span>
+                        <span className="text-[10px] text-zinc-600 shrink-0">{formatFileSize(a.size)}</span>
+                        <ExternalLink className="w-3 h-3 text-zinc-700 group-hover:text-zinc-400 transition-colors shrink-0" strokeWidth={2} />
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
 
               {/* Status + Assignee */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
