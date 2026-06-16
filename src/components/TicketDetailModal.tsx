@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/Input'
 import { Ticket, Status, Comment } from '@/lib/utils'
 import { updateTicket, addComment as addCommentApi, getProfiles, deleteTicket } from '@/lib/tickets'
 import { useAuth } from '@/contexts/AuthContext'
-import { X, Send, MessageSquare, Calendar, Trash2 } from 'lucide-react'
+import { X, Send, MessageSquare, Calendar, Trash2, Zap, AlertCircle, Layers, Wrench, UserCircle2, Tag } from 'lucide-react'
 import { motion, AnimatePresence } from 'motion/react'
 import { format } from 'date-fns'
 
@@ -102,106 +102,139 @@ export function TicketDetailModal({ ticket, isOpen, onClose, onUpdate, onDelete 
     }
   }
 
+  const TYPE_META = {
+    INCIDENT: { icon: Zap,         variant: 'danger'  as const, label: 'Incidente',  accent: 'bg-red-500'     },
+    PROBLEM:  { icon: AlertCircle, variant: 'warning' as const, label: 'Problema',   accent: 'bg-amber-500'   },
+    DEMAND:   { icon: Layers,      variant: 'info'    as const, label: 'Demanda',    accent: 'bg-blue-500'    },
+    REQUEST:  { icon: Wrench,      variant: 'success' as const, label: 'Requisição', accent: 'bg-emerald-500' },
+  }
+  const typeMeta = TYPE_META[ticket.type] ?? TYPE_META.REQUEST
+  const TypeIcon = typeMeta.icon
+
+  const PRIORITY_LABELS: Record<string, { label: string; dot: string }> = {
+    HIGH:   { label: 'Alta',   dot: 'bg-red-400'     },
+    MEDIUM: { label: 'Média',  dot: 'bg-amber-400'   },
+    LOW:    { label: 'Baixa',  dot: 'bg-emerald-400' },
+  }
+
   if (!isOpen) return null
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
         <motion.div
-          initial={{ opacity: 0, scale: 0.95 }}
-          animate={{ opacity: 1, scale: 1 }}
-          exit={{ opacity: 0, scale: 0.95 }}
+          initial={{ opacity: 0, scale: 0.96, y: 8 }}
+          animate={{ opacity: 1, scale: 1, y: 0 }}
+          exit={{ opacity: 0, scale: 0.96, y: 8 }}
+          transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
           className="w-full max-w-2xl max-h-[90vh] overflow-y-auto"
         >
-          <GlassCard className="flex flex-col overflow-hidden border-emerald-500/20 shadow-[0_0_50px_rgba(16,185,129,0.1)]">
+          <GlassCard className="flex flex-col overflow-hidden border-white/[0.1] shadow-[0_0_60px_rgba(0,0,0,0.6)]">
             {/* Header */}
-            <div className="p-6 border-b border-white/5 flex justify-between items-start bg-zinc-900/50">
-              <div>
-                <div className="flex items-center gap-3 mb-2">
-                  <span className="text-xs font-mono text-zinc-500">{ticket.id.slice(0, 8)}</span>
-                  <Badge
-                    variant={
-                      ticket.type === 'INCIDENT'
-                        ? 'danger'
-                        : ticket.type === 'PROBLEM'
-                        ? 'warning'
-                        : ticket.type === 'DEMAND'
-                        ? 'info'
-                        : 'success'
-                    }
-                  >
-                    {ticket.type}
+            <div className="relative p-6 border-b border-white/[0.06] flex justify-between items-start">
+              {/* Left color accent */}
+              <div className={`absolute left-0 top-0 bottom-0 w-0.5 ${typeMeta.accent} rounded-l-2xl`} />
+              <div className="pl-3">
+                <div className="flex items-center gap-2 mb-2.5 flex-wrap">
+                  <span className="text-[10px] font-mono text-zinc-600 bg-zinc-900 border border-white/[0.06] rounded-md px-1.5 py-0.5">
+                    #{ticket.id.slice(0, 7)}
+                  </span>
+                  <Badge variant={typeMeta.variant} className="gap-1 text-[11px] rounded-md">
+                    <TypeIcon className="w-3 h-3" strokeWidth={2.5} />
+                    {typeMeta.label}
                   </Badge>
+                  {ticket.priority && ticket.type === 'INCIDENT' && (
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-zinc-400 bg-zinc-900 border border-white/[0.07] rounded-md px-2 py-0.5">
+                      <span className={`w-1.5 h-1.5 rounded-full ${PRIORITY_LABELS[ticket.priority]?.dot ?? 'bg-zinc-500'}`} />
+                      {PRIORITY_LABELS[ticket.priority]?.label ?? ticket.priority}
+                    </span>
+                  )}
                 </div>
-                <h2 className="text-xl font-bold text-white leading-tight">{ticket.title}</h2>
+                <h2 className="text-lg font-bold text-white leading-tight tracking-tight">{ticket.title}</h2>
               </div>
               <button
                 onClick={onClose}
-                className="text-zinc-400 hover:text-white p-1 hover:bg-white/10 rounded-full transition-colors"
+                className="text-zinc-500 hover:text-white p-1.5 hover:bg-white/[0.08] rounded-xl transition-colors shrink-0 ml-4"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
 
             {/* Body */}
-            <div className="p-6 space-y-6">
+            <div className="p-6 space-y-5">
+              {/* Description */}
               <div>
-                <h3 className="text-sm font-medium text-zinc-400 mb-2">Descrição</h3>
-                <p className="text-zinc-200 text-sm leading-relaxed bg-zinc-900/30 p-3 rounded-xl border border-white/5">
+                <div className="flex items-center gap-2 mb-2">
+                  <Tag className="w-3.5 h-3.5 text-zinc-600" strokeWidth={2} />
+                  <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">Descrição</h3>
+                </div>
+                <p className="text-zinc-300 text-sm leading-relaxed bg-zinc-900/40 px-4 py-3 rounded-xl border border-white/[0.05]">
                   {ticket.description}
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Status + Assignee */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <Select
                   label="Status"
                   value={status}
                   onChange={handleStatusChange}
                   options={[
-                    { value: 'TODO', label: 'A Fazer' },
-                    { value: 'IN_PROGRESS', label: 'Em Progresso' },
-                    { value: 'BLOCKED', label: 'Bloqueado' },
-                    { value: 'DONE', label: 'Concluído' },
+                    { value: 'TODO',        label: '○  A Fazer'      },
+                    { value: 'IN_PROGRESS', label: '◎  Em Progresso' },
+                    { value: 'BLOCKED',     label: '⊘  Bloqueado'    },
+                    { value: 'DONE',        label: '✓  Concluído'    },
                   ]}
                 />
-                <Select
-                  label="Atribuído a"
-                  value={assigneeId}
-                  onChange={handleAssigneeChange}
-                  options={[
-                    { value: '', label: 'Não atribuído' },
-                    ...profiles.map((p) => ({ value: p.id, label: p.name })),
-                  ]}
-                />
+                <div>
+                  <label className="text-sm font-medium text-zinc-400 mb-1.5 flex items-center gap-1.5">
+                    <UserCircle2 className="w-3.5 h-3.5 text-zinc-600" strokeWidth={2} />
+                    Atribuído a
+                  </label>
+                  <select
+                    value={assigneeId}
+                    onChange={handleAssigneeChange}
+                    className="w-full px-3 py-2 rounded-xl border border-white/10 bg-zinc-900/60 text-sm text-zinc-200 focus:border-emerald-500/50 focus:outline-none focus:ring-1 focus:ring-emerald-500/40"
+                  >
+                    <option value="">Não atribuído</option>
+                    {profiles.map((p) => (
+                      <option key={p.id} value={p.id}>{p.name}</option>
+                    ))}
+                  </select>
+                </div>
               </div>
 
               {/* Comments */}
-              <div className="flex flex-col h-[300px]">
-                <h3 className="text-sm font-medium text-zinc-400 mb-2 flex items-center gap-2">
-                  <MessageSquare className="w-4 h-4" />
-                  Comentários
-                </h3>
-                <div className="flex-1 overflow-y-auto bg-zinc-900/30 rounded-xl border border-white/5 p-4 space-y-4 mb-4">
+              <div className="flex flex-col h-[260px]">
+                <div className="flex items-center gap-2 mb-2.5">
+                  <MessageSquare className="w-3.5 h-3.5 text-zinc-600" strokeWidth={2} />
+                  <h3 className="text-xs font-semibold text-zinc-500 uppercase tracking-widest">Comentários</h3>
+                  {comments.length > 0 && (
+                    <span className="text-[10px] font-semibold text-zinc-600 bg-zinc-900 border border-white/[0.07] rounded-full px-1.5 py-0.5">
+                      {comments.length}
+                    </span>
+                  )}
+                </div>
+                <div className="flex-1 overflow-y-auto bg-zinc-900/30 rounded-xl border border-white/[0.05] p-3.5 space-y-3.5 mb-3">
                   {comments.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center text-zinc-500 text-sm">
+                    <div className="h-full flex flex-col items-center justify-center text-zinc-700 text-xs gap-2">
+                      <MessageSquare className="w-5 h-5 opacity-40" strokeWidth={1.5} />
                       <p>Nenhum comentário ainda.</p>
                     </div>
                   ) : (
                     comments.map((comment) => (
                       <div key={comment.id} className="flex gap-3">
-                        <div className="w-8 h-8 rounded-full bg-zinc-800 flex items-center justify-center text-xs font-medium text-zinc-400 border border-white/5 shrink-0">
-                          {comment.author.charAt(0)}
+                        <div className="w-7 h-7 rounded-full bg-emerald-900/40 border border-emerald-500/20 flex items-center justify-center text-[10px] font-bold text-emerald-400 shrink-0">
+                          {comment.author.charAt(0).toUpperCase()}
                         </div>
-                        <div className="flex-1">
-                          <div className="flex items-center gap-2 mb-1">
-                            <span className="text-sm font-medium text-emerald-400">
-                              {comment.author}
-                            </span>
-                            <span className="text-[10px] text-zinc-500">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-baseline gap-2 mb-1">
+                            <span className="text-xs font-semibold text-emerald-400">{comment.author}</span>
+                            <span className="text-[10px] text-zinc-600">
                               {format(new Date(comment.createdAt), 'dd/MM/yyyy HH:mm')}
                             </span>
                           </div>
-                          <div className="bg-zinc-800/50 p-2.5 rounded-lg rounded-tl-none text-sm text-zinc-300 border border-white/5">
+                          <div className="bg-zinc-800/60 px-3 py-2 rounded-xl rounded-tl-sm text-sm text-zinc-300 border border-white/[0.05] leading-relaxed">
                             {comment.text}
                           </div>
                         </div>
@@ -216,14 +249,14 @@ export function TicketDetailModal({ ticket, isOpen, onClose, onUpdate, onDelete 
                     value={newComment}
                     onChange={(e) => setNewComment(e.target.value)}
                     onKeyDown={(e) => e.key === 'Enter' && handleAddComment()}
-                    placeholder="Escreva um comentário..."
+                    placeholder="Escreva um comentário…"
                     className="flex-1"
                   />
                   <Button
                     onClick={handleAddComment}
                     size="icon"
-                    disabled={saving}
-                    className="bg-emerald-600 hover:bg-emerald-500"
+                    disabled={saving || !newComment.trim()}
+                    className="bg-emerald-600 hover:bg-emerald-500 shrink-0"
                   >
                     <Send className="w-4 h-4" />
                   </Button>
@@ -232,11 +265,18 @@ export function TicketDetailModal({ ticket, isOpen, onClose, onUpdate, onDelete 
             </div>
 
             {/* Footer */}
-            <div className="p-4 bg-zinc-900/50 border-t border-white/5 flex justify-between items-center">
-              <div className="flex items-center gap-2 text-xs text-zinc-500">
-                <Calendar className="w-3 h-3" />
-                Criado em {format(new Date(ticket.createdAt), 'dd/MM/yyyy')}
-                {ticket.closedAt && <span>· Fechado em {format(new Date(ticket.closedAt), 'dd/MM/yyyy')}</span>}
+            <div className="px-6 py-3.5 bg-zinc-900/40 border-t border-white/[0.05] flex justify-between items-center flex-wrap gap-2">
+              <div className="flex items-center gap-3 text-[11px] text-zinc-600">
+                <span className="flex items-center gap-1.5">
+                  <Calendar className="w-3 h-3" />
+                  Criado {format(new Date(ticket.createdAt), 'dd/MM/yyyy')}
+                </span>
+                {ticket.closedAt && (
+                  <span className="flex items-center gap-1.5 text-emerald-600">
+                    <span>·</span>
+                    Fechado {format(new Date(ticket.closedAt), 'dd/MM/yyyy')}
+                  </span>
+                )}
               </div>
               {confirmDelete ? (
                 <div className="flex items-center gap-2">

@@ -1,35 +1,58 @@
+@import "@fontsource-variable/plus-jakarta-sans";
 @import "tailwindcss";
 
 @layer base {
   html {
+    font-family: "Plus Jakarta Sans Variable", "Plus Jakarta Sans", system-ui, sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+    font-feature-settings: "cv11", "ss01";
+    letter-spacing: -0.018em;
   }
 
   body {
     background-color: #09090b;
   }
 
+  /* ── Cursors ──────────────────────────────────────────────── */
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  label[for],
+  select:not(:disabled),
+  summary {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  select:disabled,
+  input:disabled,
+  textarea:disabled {
+    cursor: not-allowed;
+  }
+
+  input[type="text"],
+  input[type="email"],
+  input[type="password"],
+  input[type="search"],
+  textarea {
+    cursor: text;
+  }
+
+  a { cursor: pointer; }
+
+  /* ── Scrollbars ───────────────────────────────────────────── */
   * {
     scrollbar-width: thin;
     scrollbar-color: rgba(255 255 255 / 0.08) transparent;
   }
 
-  *::-webkit-scrollbar {
-    width: 5px;
-    height: 5px;
-  }
+  *::-webkit-scrollbar        { width: 5px; height: 5px; }
+  *::-webkit-scrollbar-track  { background: transparent; }
+  *::-webkit-scrollbar-thumb  { background: rgba(255 255 255 / 0.08); border-radius: 3px; }
+  *::-webkit-scrollbar-thumb:hover { background: rgba(255 255 255 / 0.14); }
 
-  *::-webkit-scrollbar-track {
-    background: transparent;
-  }
-
-  *::-webkit-scrollbar-thumb {
-    background: rgba(255 255 255 / 0.08);
-    border-radius: 3px;
-  }
-
-  *::-webkit-scrollbar-thumb:hover {
-    background: rgba(255 255 255 / 0.14);
+  select option {
+    background-color: #18181b;
+    color: #e4e4e7;
   }
 }
