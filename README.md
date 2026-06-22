@@ -1,20 +1,67 @@
 <div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
+
+# DeskFlow
+
+**Helpdesk moderno com visual Liquid Glass Dark**
+
+React 19 · Vite 6 · Tailwind CSS 4
+
 </div>
 
-# Run and deploy your AI Studio app
+---
 
-This contains everything you need to run your app locally.
+## Visão geral
 
-View your app in AI Studio: https://ai.studio/apps/ef130bcf-3ccc-488c-87b8-255a29d151fb
+DeskFlow é uma SPA de helpdesk com três módulos principais:
 
-## Run Locally
+| Módulo | Descrição |
+|--------|-----------|
+| **Portal** | Abertura de chamados pelo usuário final, com upload de anexos |
+| **Kanban** | Board com drag-and-drop para agentes gerenciarem chamados |
+| **Dashboard** | Métricas de SLA, tempo de resposta e status geral |
 
-**Prerequisites:**  Node.js
+Inclui exportação de relatórios em PDF e timers de SLA com alerta de violação de prazo.
 
+## Requisitos
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+- Node.js 18+
+
+## Instalação
+
+```bash
+git clone <repo>
+cd deskflow
+npm install
+cp .env.example .env
+```
+
+## Comandos
+
+```bash
+npm run dev      # Servidor de desenvolvimento em http://localhost:3000
+npm run build    # Build de produção (saída em dist/)
+npm run preview  # Serve o build de produção localmente
+npm run lint     # Type-check TypeScript (tsc --noEmit)
+```
+
+## Estrutura principal
+
+```
+src/
+├── views/
+│   ├── Portal.tsx              # Submissão de chamados
+│   ├── Kanban.tsx              # Board de agentes
+│   └── Dashboard.tsx           # Analytics e SLA
+├── components/
+│   ├── layout/Layout.tsx       # Nav bar e chrome global
+│   ├── ui/GlassCard.tsx        # Primitivo visual base
+│   ├── SLATimer.tsx            # Countdown com alerta de breach
+│   └── TicketDetailModal.tsx   # Modal de visualização/edição
+└── data/mock.ts                # Dados em memória (tickets, clientes, agentes)
+```
+
+## Stack
+
+- **React 19** + **Vite 6**
+- **Tailwind CSS 4** — tema Liquid Glass Dark
+- **better-sqlite3** — instalado, pronto para persistência futura
